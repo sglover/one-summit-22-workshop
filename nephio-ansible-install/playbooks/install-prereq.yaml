@@ -1,6 +1,6 @@
 ---
 # Play to check for minimum hardware requirements on host system before proceeding with installation
-- hosts: vm
+- hosts: all
   serial: 1
 
   pre_tasks:
@@ -26,7 +26,7 @@
           when: ((ansible_mounts|json_query('[?mount == `/`].size_available'))[0] / (1024|pow(3))) | int < host_min_root_disk_space
       when: ansible_facts['os_family'] == "RedHat" or ansible_facts['os_family'] == "Debian"
 
-- hosts: vm
+- hosts: all
 
   environment:
     http_proxy: "{{proxy.http_proxy}}"
