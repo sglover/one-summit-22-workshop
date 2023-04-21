@@ -11,8 +11,8 @@
     #user: "{{ getent_passwd[cloud_user].1 }}:{{ getent_passwd[cloud_user].2 }}"
     restart: yes
     ports:
-      - "127.0.0.1:3000:3000/tcp"
-      - "127.0.0.1:2222:2222/tcp"
+      - "3000:3000/tcp"
+      - "2222:2222/tcp"
     env:
       GITEA_APP_INI: "/var/lib/gitea/custom/conf/app.ini"
       INSTALL_LOCK: "true"

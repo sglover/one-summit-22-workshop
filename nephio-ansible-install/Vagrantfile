@@ -1,0 +1,76 @@
+$start_script = <<-SCRIPT
+
+cat << EOF | sudo tee /etc/netplan/60-openvpn-routes.yaml
+---
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth1:
+      routes:
+      - to: 198.19.56.0/24
+        via: 192.168.56.1
+EOF
+sudo netplan apply
+
+apt update
+apt install -y python3-pip
+pip install requests
+
+SCRIPT
+
+$end_script = <<-SCRIPT
+
+kubectl --kubeconfig /home/vagrant/.kube/mgmt-config apply -f /vagrant/webui.yaml
+
+SCRIPT
+
+Vagrant.configure(2) do |config|
+
+    config.vm.synced_folder ".", "/vagrant", disabled: false
+    config.vm.define 'nephio' do |nodeconfig|
+      nodeconfig.vm.box = 'generic/ubuntu2204'
+      nodeconfig.vm.box_check_update = false
+      nodeconfig.vm.synced_folder './', '/vagrant'
+
+      nodeconfig.vm.network "forwarded_port", guest: 7007, host: 7007
+      nodeconfig.vm.network "forwarded_port", guest: 3000, host: 3000
+      nodeconfig.vm.network :public_network, :dev => "br-mgmt_56", :mode => "bridge", :type => "bridge",  :ip => "192.168.56.60"
+
+      nodeconfig.vm.provider :libvirt do |libvirt|
+        libvirt.cpus = 8 
+        libvirt.memory = "32000"
+        libvirt.nested = true
+        libvirt.cpu_mode = 'host-passthrough'
+      end
+
+      nodeconfig.vm.provision "shell", inline: $start_script
+  
+      nodeconfig.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = "vars.yaml"
+        ansible.playbook = "playbooks/install-prereq.yaml"
+      end
+
+      nodeconfig.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = "vars.yaml"
+        ansible.playbook = "playbooks/create-gitea.yaml"
+      end
+
+      nodeconfig.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = "vars.yaml"
+        ansible.playbook = "playbooks/create-gitea-repos.yaml"
+      end
+
+      nodeconfig.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = "vars.yaml"
+        ansible.playbook = "playbooks/deploy-clusters.yaml"
+      end
+
+      nodeconfig.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = "vars.yaml"
+        ansible.playbook = "playbooks/configure-nephio.yaml"
+      end
+
+      nodeconfig.vm.provision "shell", inline: $end_script
+    end
+  end

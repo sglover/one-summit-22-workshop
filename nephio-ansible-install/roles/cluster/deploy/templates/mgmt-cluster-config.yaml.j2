@@ -9,6 +9,13 @@ nodes:
     extraMounts:
       - hostPath: "{{ tmp_directory }}/cni"
         containerPath: /opt/cni/bin
+    extraPortMappings:
+    - containerPort: 80
+      hostPort: 7007
+      protocol: TCP
+    - containerPort: 32555
+      hostPort: 32555
+      protocol: TCP
     kubeadmConfigPatches:
     - |
       kind: InitConfiguration
@@ -19,3 +26,11 @@ nodes:
       - containerPort: 80
         hostPort: 7007
         protocol: TCP
+      - containerPort: 32555
+        hostPort: 32555
+        protocol: TCP
+    - |
+      kind: ClusterConfiguration
+      apiServer:
+          extraArgs:
+            strict-transport-security-directives: ""
